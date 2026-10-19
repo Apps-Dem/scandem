@@ -8,7 +8,10 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
-  "routes": [{ "pattern": "scandem.alldem.app", "custom_domain": true }],
+  "routes": [
+    { "pattern": "scandem.alldem.app", "custom_domain": true },
+    { "pattern": "alldem.app", "custom_domain": true }
+  ],
   "d1_databases": [
     { "binding": "DB", "database_name": "scandem", "database_id": "3e4b7115-df1e-46bb-9f2d-098256e65dd6", "migrations_dir": "server/migrations" }
   ],
