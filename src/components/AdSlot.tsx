@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
 
-const CLIENT = import.meta.env.VITE_ADSENSE_CLIENT as string | undefined;
+const CLIENT = (import.meta.env.VITE_ADSENSE_CLIENT as string | undefined) || 'ca-pub-7243135710095454';
+const DEFAULT_SLOT = (import.meta.env.VITE_ADSENSE_SLOT as string | undefined) || '8295221087';
+// Per-placement overrides are optional; otherwise the shared "Slot 1" unit is used.
 const SLOTS: Record<string, string | undefined> = {
-  top: import.meta.env.VITE_ADSENSE_SLOT_TOP,
-  inline: import.meta.env.VITE_ADSENSE_SLOT_INLINE,
-  bottom: import.meta.env.VITE_ADSENSE_SLOT_BOTTOM,
+  top: import.meta.env.VITE_ADSENSE_SLOT_TOP || DEFAULT_SLOT,
+  inline: import.meta.env.VITE_ADSENSE_SLOT_INLINE || DEFAULT_SLOT,
+  bottom: import.meta.env.VITE_ADSENSE_SLOT_BOTTOM || DEFAULT_SLOT,
 };
 
 declare global { interface Window { adsbygoogle?: unknown[] } }
