@@ -25,4 +25,4 @@ Requires Node >= 22 (the local server uses `node:sqlite`). Production runs on Cl
     npx wrangler secret put ADMIN_TOKEN
     npm run deploy
 
-`MOCK_PAYMENTS` is `"false"` in `wrangler.jsonc`: until a real payment provider is wired up, nobody can buy a pass in production.
+`PAYMENTS_REQUIRED` is `"false"` at launch (free for everyone; toggle via the admin API). `MOCK_PAYMENTS` is `"false"`: until a real payment provider is wired up, nobody can buy a pass in production.
