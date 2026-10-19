@@ -104,16 +104,26 @@ export default function App() {
   const mins = Math.ceil(msLeft / 60000);
   const hasData = session.receipts.length > 0 || session.accepted > 0;
   const pending = session.accepted - session.processed - session.failed;
-  const priceLine = config?.paymentsRequired
-    ? `First scan free · then $${config.priceUsd} USD (≈ EC$${config.priceXcd}) per 24 hours`
-    : 'Free to use right now';
-
   return (
     <div className="app">
       <header>
         <h1>Scandem <span>receipt scanner</span></h1>
-        <p className="muted">{priceLine}{status?.passActive && status.passExpires ? ` · Pass until ${new Date(status.passExpires).toLocaleString()}` : ''}</p>
       </header>
+
+      {config?.paymentsRequired && (
+        <section className="price-box" aria-label="Pricing">
+          <div className="price-main">
+            <span className="price-amt">${config.priceUsd} <small>USD</small></span>
+            <span className="price-xcd">≈ EC${config.priceXcd}</span>
+            <span className="price-per">per 24 hours · unlimited scans</span>
+          </div>
+          <p className="price-note">
+            {status?.passActive && status.passExpires
+              ? `✓ Pass active until ${new Date(status.passExpires).toLocaleString()}`
+              : 'Your first receipt scan is free.'}
+          </p>
+        </section>
+      )}
 
       <AdSlot placement="top" />
 

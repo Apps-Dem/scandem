@@ -50,3 +50,11 @@ footer { text-align: center; }
 .price { font-size: 1.8rem; font-weight: 700; margin: 8px 0 14px; color: var(--brand); }
 .price span { display: block; font-size: .9rem; font-weight: 400; color: var(--mut); }
 .actions { display: flex; flex-direction: column; gap: 8px; }
+
+.price-box { background: linear-gradient(135deg, var(--brand), #115e59); color: #fff; border-radius: 16px; padding: 16px 18px; text-align: center; box-shadow: 0 6px 18px rgb(15 118 110 / .3); }
+.price-main { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 12px; }
+.price-amt { font-size: 2.2rem; font-weight: 800; letter-spacing: -.02em; }
+.price-amt small { font-size: 1rem; font-weight: 600; opacity: .85; }
+.price-xcd { font-size: 1.4rem; font-weight: 700; background: rgb(255 255 255 / .18); border-radius: 999px; padding: 2px 12px; }
+.price-per { flex-basis: 100%; font-size: .9rem; opacity: .9; }
+.price-note { margin: 8px 0 0; font-size: .85rem; background: rgb(0 0 0 / .18); border-radius: 8px; padding: 4px 8px; display: inline-block; }
