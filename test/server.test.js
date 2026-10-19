@@ -3,7 +3,7 @@ import request from 'supertest';
 import { createApp, priceInfo } from '../server/app.js';
 
 const FP = 'a'.repeat(64);
-const mk = (env = {}) => createApp({ env: { ADMIN_TOKEN: 'secret', ...env } }).app;
+const mk = (env = {}) => createApp({ env: { ADMIN_TOKEN: 'secret', ...env } });
 
 describe('pricing', () => {
   it('rounds XCD up: $5 -> 14', () => expect(priceInfo({}).xcd).toBe(14));
@@ -32,7 +32,7 @@ describe('accept / paywall', () => {
 
   it('pass expires after 24h', async () => {
     let t = 1_000_000;
-    const { app } = createApp({ env: {}, now: () => t });
+    const app = createApp({ env: {}, now: () => t });
     const a = request.agent(app);
     await a.post('/api/accept').set('x-device-fp', FP);
     await a.post('/api/pay/mock-complete').set('x-device-fp', FP);
@@ -56,10 +56,10 @@ describe('admin toggle', () => {
     for (let i = 0; i < 3; i++) await request(app).post('/api/accept').set('x-device-fp', FP).expect(200);
   });
   it('is disabled without ADMIN_TOKEN', async () => {
-    await request(createApp({ env: {} }).app).get('/api/admin/settings').expect(503);
+    await request(createApp({ env: {} })).get('/api/admin/settings').expect(503);
   });
   it('mock payments disabled in production by default', async () => {
-    const app = createApp({ env: { NODE_ENV: 'production' } }).app;
+    const app = createApp({ env: { NODE_ENV: 'production' } });
     await request(app).post('/api/pay/mock-complete').set('x-device-fp', FP).expect(404);
   });
 });
