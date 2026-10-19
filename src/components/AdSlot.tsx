@@ -10,7 +10,7 @@ const SLOTS: Record<string, string | undefined> = {
 declare global { interface Window { adsbygoogle?: unknown[] } }
 
 function loadScript() {
-  if (!CLIENT || document.querySelector('script[data-adsense]')) return;
+  if (!CLIENT || document.querySelector('script[data-adsense], script[src*="adsbygoogle.js"]')) return;
   const s = document.createElement('script');
   s.async = true; s.crossOrigin = 'anonymous'; s.dataset.adsense = '1';
   s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(CLIENT)}`;
