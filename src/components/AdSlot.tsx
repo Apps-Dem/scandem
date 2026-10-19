@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
-const CLIENT = (import.meta.env.VITE_ADSENSE_CLIENT as string | undefined) || 'ca-pub-7243135710095454';
-const DEFAULT_SLOT = (import.meta.env.VITE_ADSENSE_SLOT as string | undefined) || '8295221087';
+const CLIENT = import.meta.env.VITE_ADSENSE_CLIENT as string | undefined;
+const DEFAULT_SLOT = import.meta.env.VITE_ADSENSE_SLOT as string | undefined;
 // Per-placement overrides are optional; otherwise the shared "Slot 1" unit is used.
 const SLOTS: Record<string, string | undefined> = {
   top: import.meta.env.VITE_ADSENSE_SLOT_TOP || DEFAULT_SLOT,
