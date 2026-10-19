@@ -26,3 +26,6 @@ Requires Node >= 22 (the local server uses `node:sqlite`). Production runs on Cl
     npm run deploy
 
 `PAYMENTS_REQUIRED` is `"false"` at launch (free for everyone; toggle via the admin API). `MOCK_PAYMENTS` is `"false"`: until a real payment provider is wired up, nobody can buy a pass in production.
+
+## CI/CD
+`.github/workflows/deploy.yml` runs tests + build on every push/PR, and on pushes to `main` applies D1 migrations and deploys to Cloudflare. Repo secrets required: `CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit, D1: Edit, Workers Routes: Edit, Zone: Read) and `CLOUDFLARE_ACCOUNT_ID`. `ADMIN_TOKEN` stays a Worker secret (not touched by CI).
