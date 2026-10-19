@@ -21,7 +21,11 @@ export default function App() {
   const { session, update, clear, touch, msLeft, expired, dismissExpired } = useSession();
   const [config, setConfig] = useState<Config | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
-  const [format, setFormat] = useState<OutputFormat>('csv');
+  const [format, setFormatState] = useState<OutputFormat>(() => {
+    const f = localStorage.getItem('scandem.format') as OutputFormat | null;
+    return FORMATS.some((x) => x.id === f) ? f! : 'csv';
+  });
+  const setFormat = (f: OutputFormat) => { localStorage.setItem('scandem.format', f); setFormatState(f); };
   const [working, setWorking] = useState(0);
   const [paywall, setPaywall] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -96,6 +100,7 @@ export default function App() {
     finally { setPaying(false); }
   };
 
+  const formatLabel = FORMATS.find((f) => f.id === format)!.label;
   const mins = Math.ceil(msLeft / 60000);
   const hasData = session.receipts.length > 0 || session.accepted > 0;
   const pending = session.accepted - session.processed - session.failed;
@@ -114,7 +119,17 @@ export default function App() {
 
       <main>
         <section className="card scan">
-          <h2>Scan receipts</h2>
+          <h2>1. Choose output format</h2>
+          <fieldset className="formats">
+            <legend className="sr">Output format</legend>
+            {FORMATS.map((f) => (
+              <label key={f.id} className={format === f.id ? 'fmt sel' : 'fmt'}>
+                <input type="radio" name="fmt" checked={format === f.id} onChange={() => setFormat(f.id)} />
+                <span><b>{f.label}</b><small>{f.hint}</small></span>
+              </label>
+            ))}
+          </fieldset>
+          <h2>2. Scan receipts</h2>
           <div className="buttons">
             <button className="btn primary big" onClick={() => camRef.current?.click()}>📷 Take photo</button>
             <button className="btn big" onClick={() => fileRef.current?.click()}>🖼️ Upload photos / PDF</button>
@@ -151,17 +166,9 @@ export default function App() {
 
         <section className="card download">
           <h2>Download</h2>
-          <fieldset>
-            <legend className="sr">Output format</legend>
-            {FORMATS.map((f) => (
-              <label key={f.id} className={format === f.id ? 'fmt sel' : 'fmt'}>
-                <input type="radio" name="fmt" checked={format === f.id} onChange={() => setFormat(f.id)} />
-                <span><b>{f.label}</b><small>{f.hint}</small></span>
-              </label>
-            ))}
-          </fieldset>
+          <p className="muted small">Selected format: <b>{formatLabel}</b> (change it in “Output format” above)</p>
           <button className="btn primary big" disabled={!session.receipts.length || working > 0} onClick={download}>
-            ⬇ Download {FORMATS.find((f) => f.id === format)!.label}
+            ⬇ Download {formatLabel}
           </button>
           <p className="warn">
             ⚠ Download your output immediately. All inputs are cleared after a successful download or after 30 minutes of inactivity.
@@ -175,7 +182,7 @@ export default function App() {
       <footer className="muted small">OCR is approximate — review amounts before importing into accounting software.</footer>
 
       {paywall && config && (
-        <Paywall config={config} hasOutput={session.receipts.length > 0} busy={paying}
+        <Paywall config={config} formatLabel={formatLabel} hasOutput={session.receipts.length > 0} busy={paying}
           onPay={pay} onDownload={download} onClose={() => setPaywall(false)} />
       )}
     </div>

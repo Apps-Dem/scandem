@@ -2,6 +2,7 @@ import type { Config } from '../lib/api';
 
 interface Props {
   config: Config;
+  formatLabel: string;
   hasOutput: boolean;
   busy: boolean;
   onPay: () => void;
@@ -9,7 +10,7 @@ interface Props {
   onClose: () => void;
 }
 
-export function Paywall({ config, hasOutput, busy, onPay, onDownload, onClose }: Props) {
+export function Paywall({ config, formatLabel, hasOutput, busy, onPay, onDownload, onClose }: Props) {
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="pw-title">
       <div className="modal">
@@ -25,7 +26,7 @@ export function Paywall({ config, hasOutput, busy, onPay, onDownload, onClose }:
             </button>
           )}
           {!config.mockPayments && <p className="muted">Payments are not available yet.</p>}
-          <button className="btn" disabled={!hasOutput} onClick={onDownload}>Download output</button>
+          <button className="btn" disabled={!hasOutput} onClick={onDownload}>Download {formatLabel}</button>
           <button className="btn link" onClick={onClose}>Not now</button>
         </div>
         {config.mockPayments && <p className="muted small">Test mode: payment is simulated.</p>}
