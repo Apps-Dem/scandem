@@ -1,0 +1,52 @@
+:root { --brand: #0f766e; --brand-d: #0b5c56; --bg: #f1f5f9; --ink: #0f172a; --mut: #64748b; --line: #e2e8f0; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+.app { max-width: 720px; margin: 0 auto; padding: max(12px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; }
+header h1 { margin: 4px 0 0; font-size: 1.5rem; letter-spacing: -.02em; color: var(--brand); }
+header h1 span { font-weight: 400; color: var(--mut); font-size: 1rem; }
+h2 { margin: 0 0 10px; font-size: 1.05rem; }
+main { display: flex; flex-direction: column; gap: 14px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: 0 1px 2px rgb(15 23 42 / .04); }
+.muted { color: var(--mut); margin: 4px 0; }
+.small { font-size: .82rem; }
+.sr { position: absolute; left: -9999px; }
+.buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) { .buttons { grid-template-columns: 1fr; } }
+.btn { border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 10px 14px; border-radius: 10px; font: inherit; cursor: pointer; }
+.btn.big { padding: 14px; font-weight: 600; }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn.primary:hover:not(:disabled) { background: var(--brand-d); }
+.btn.link { border: 0; background: none; color: var(--brand); text-decoration: underline; padding: 4px 8px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.tally { display: flex; gap: 10px; margin: 12px 0 4px; }
+.tally div { flex: 1; background: var(--bg); border-radius: 10px; padding: 8px; text-align: center; }
+.tally b { display: block; font-size: 1.6rem; line-height: 1.1; }
+.tally span { font-size: .75rem; color: var(--mut); text-transform: uppercase; letter-spacing: .05em; }
+.progress { color: var(--brand); margin: 6px 0; }
+.error { color: #b91c1c; background: #fef2f2; border-radius: 8px; padding: 8px 10px; margin: 8px 0 0; }
+.info { color: #14532d; background: #f0fdf4; border-radius: 8px; padding: 8px 10px; margin: 8px 0 0; }
+.warn { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; border-radius: 8px; padding: 10px; margin: 12px 0 0; font-size: .9rem; }
+.receipts { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow: auto; }
+.receipts li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.receipts li:last-child { border: 0; }
+.receipts span { display: block; font-size: .8rem; color: var(--mut); }
+.amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+fieldset { border: 0; padding: 0; margin: 0 0 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fmt { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer; }
+.fmt.sel { border-color: var(--brand); background: #f0fdfa; }
+.fmt small { display: block; color: var(--mut); font-size: .76rem; }
+.download .btn.big { width: 100%; }
+.ad { position: relative; background: #fff; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 18px 8px 8px; overflow: hidden; }
+.ad-label { position: absolute; top: 4px; left: 10px; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; }
+.ad-placeholder { display: grid; place-items: center; color: #94a3b8; background: repeating-linear-gradient(45deg, #f8fafc, #f8fafc 10px, #f1f5f9 10px, #f1f5f9 20px); border-radius: 8px; }
+.ad-top .ad-placeholder, .ad-bottom .ad-placeholder { min-height: 60px; }
+.ad-inline .ad-placeholder { min-height: 100px; }
+.ad-top, .ad-bottom { min-height: 90px; }
+.ad-inline { min-height: 130px; }
+footer { text-align: center; }
+.overlay { position: fixed; inset: 0; background: rgb(15 23 42 / .55); display: grid; place-items: center; padding: 16px; z-index: 10; }
+.modal { background: #fff; border-radius: 16px; padding: 22px; max-width: 420px; width: 100%; }
+.modal h2 { font-size: 1.25rem; }
+.price { font-size: 1.8rem; font-weight: 700; margin: 8px 0 14px; color: var(--brand); }
+.price span { display: block; font-size: .9rem; font-weight: 400; color: var(--mut); }
+.actions { display: flex; flex-direction: column; gap: 8px; }
