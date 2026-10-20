@@ -8,11 +8,25 @@ import { createHandler } from './core.js';
 export { priceInfo } from './core.js';
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.wasm': 'application/wasm' };
-const schema = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations', '0001_init.sql'), 'utf8');
+const migrationsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
+const migrations = fs.readdirSync(migrationsDir).filter((file) => file.endsWith('.sql')).sort()
+  .map((file) => ({ name: file, sql: fs.readFileSync(path.join(migrationsDir, file), 'utf8') }));
 
 function sqliteAdapter(dbPath) {
   const sql = new DatabaseSync(dbPath);
-  sql.exec(schema);
+  sql.exec('CREATE TABLE IF NOT EXISTS local_migrations (name TEXT PRIMARY KEY)');
+  for (const migration of migrations) {
+    if (sql.prepare('SELECT name FROM local_migrations WHERE name = ?').get(migration.name)) continue;
+    sql.exec('BEGIN');
+    try {
+      sql.exec(migration.sql);
+      sql.prepare('INSERT INTO local_migrations (name) VALUES (?)').run(migration.name);
+      sql.exec('COMMIT');
+    } catch (error) {
+      sql.exec('ROLLBACK');
+      throw error;
+    }
+  }
   return {
     first: async (q, ...p) => sql.prepare(q).get(...p) ?? null,
     run: async (q, ...p) => {

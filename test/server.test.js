@@ -47,6 +47,72 @@ describe('accept / paywall', () => {
   });
 });
 
+describe('cloud OCR', () => {
+  it('uses one accepted credit to OCR multiple pages in order', async () => {
+    const invocations = [];
+    const app = mk({ AI: { run: async (model, input) => {
+      invocations.push({ model, input });
+      return { answer: input.image.endsWith('YWJj') ? 'CORNER MARKET' : 'TOTAL 7.40' };
+    } } });
+    const client = request.agent(app);
+    const accepted = await client.post('/api/accept').set('x-device-fp', FP).expect(200);
+    const result = await client.post('/api/ocr')
+      .set('x-device-fp', FP)
+      .set('authorization', `Bearer ${accepted.body.ocrToken}`)
+      .send({ images: ['data:image/jpeg;base64,YWJj', 'data:image/jpeg;base64,ZGVm'] })
+      .expect(200);
+
+    expect(result.body.text).toBe('CORNER MARKET\nTOTAL 7.40');
+    expect(invocations).toHaveLength(2);
+    expect(invocations[0].model).toBe('@cf/moondream/moondream3.1-9B-A2B');
+    expect(invocations[0].input.task).toBe('query');
+    expect(invocations.map(({ input }) => input.image)).toEqual([
+      'data:image/jpeg;base64,YWJj',
+      'data:image/jpeg;base64,ZGVm',
+    ]);
+    await client.post('/api/ocr')
+      .set('x-device-fp', FP)
+      .set('authorization', `Bearer ${accepted.body.ocrToken}`)
+      .send({ images: ['data:image/jpeg;base64,YWJj'] })
+      .expect(403);
+  });
+
+  it('does not consume a credit if Workers AI is unavailable', async () => {
+    const env = {};
+    const client = request.agent(createApp({ env }));
+    const accepted = await client.post('/api/accept').set('x-device-fp', FP).expect(200);
+    const sendOcr = () => client.post('/api/ocr')
+      .set('x-device-fp', FP)
+      .set('authorization', `Bearer ${accepted.body.ocrToken}`)
+      .send({ images: ['data:image/jpeg;base64,YWJj'] });
+
+    await sendOcr().expect(503);
+    env.AI = { run: async () => ({ answer: 'Receipt text' }) };
+    await sendOcr().expect(200);
+  });
+
+  it('rejects invalid image payloads before using the credit', async () => {
+    const client = request.agent(mk({ AI: { run: async () => ({ answer: 'Receipt text' }) } }));
+    const accepted = await client.post('/api/accept').set('x-device-fp', FP).expect(200);
+    const sendOcr = (image) => client.post('/api/ocr')
+      .set('x-device-fp', FP)
+      .set('authorization', `Bearer ${accepted.body.ocrToken}`)
+      .send({ images: [image] });
+
+    await sendOcr('not-an-image').expect(400);
+    await sendOcr('data:image/jpeg;base64,YWJj').expect(200);
+  });
+
+  it('rejects OCR without an accepted credit', async () => {
+    await request(mk({ AI: { run: async () => ({ answer: 'Receipt text' }) } }))
+      .post('/api/ocr')
+      .set('x-device-fp', FP)
+      .set('authorization', `Bearer ${'a'.repeat(64)}`)
+      .send({ images: ['data:image/jpeg;base64,YWJj'] })
+      .expect(403);
+  });
+});
+
 describe('admin toggle', () => {
   it('requires token and disables payment requirement', async () => {
     const app = mk();
