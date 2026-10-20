@@ -32,3 +32,6 @@ Run `npm run db:migrate:local` before the first `npm run cf:dev` to initialize l
 
 ## CI/CD
 `.github/workflows/deploy.yml` runs tests + build on every push/PR, and on pushes to `main` applies D1 migrations and deploys to Cloudflare. Repo secrets required: `CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit, D1: Edit, Workers Routes: Edit, Zone: Read) and `CLOUDFLARE_ACCOUNT_ID`. `ADMIN_TOKEN` stays a Worker secret (not touched by CI).
+
+### PR previews
+`.github/workflows/preview.yml` deploys every same-repo PR as a Worker Preview (`pr-<number>`) at `https://pr-<number>.preview.alldem.app`, comments the URL on the PR, and deletes the preview when the PR closes. Previews use mock payments, Workers AI, and one shared staging D1 database (`scandem-staging`) that `scripts/provision-preview-db.mjs` creates on first run, then migrates before each deploy. The same `CLOUDFLARE_API_TOKEN` is used (D1: Edit is enough). `*.preview.alldem.app` must be protected by a Cloudflare Access application. Preview Worker settings live in the `previews` block of `wrangler.jsonc`.
