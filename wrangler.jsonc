@@ -15,6 +15,7 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "scandem", "database_id": "3e4b7115-df1e-46bb-9f2d-098256e65dd6", "migrations_dir": "server/migrations" }
   ],
+  "ai": { "binding": "AI" },
   "vars": {
     "PAYMENTS_REQUIRED": "false",
     "PRICE_USD": "5",

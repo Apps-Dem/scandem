@@ -54,22 +54,23 @@ export default function App() {
     for (const file of list) {
       if (!isSupported(file)) { skipped++; continue; }
       try {
-        if ((await acceptInput()) === 'payment_required') {
+        const access = await acceptInput();
+        if (access.status === 'payment_required') {
           setPaywall(true);
           setNotice(`${list.length - list.indexOf(file) - skipped} file(s) were not accepted. Download your output or pay to continue.`);
           break;
         }
+        update((s) => ({ ...s, accepted: s.accepted + 1 }));
+        setWorking((n) => n + 1);
+        try {
+          const text = await ocrFile(file, access.token);
+          const receipt = parseReceipt(text, file.name, crypto.randomUUID());
+          update((s) => ({ ...s, processed: s.processed + 1, receipts: [...s.receipts, receipt] }));
+        } catch (e) {
+          update((s) => ({ ...s, failed: s.failed + 1 }));
+          setError(e instanceof Error ? e.message : `Could not read “${file.name}”. Try a clearer, well-lit photo.`);
+        } finally { setWorking((n) => n - 1); }
       } catch (e) { setError((e as Error).message); break; }
-      update((s) => ({ ...s, accepted: s.accepted + 1 }));
-      setWorking((n) => n + 1);
-      try {
-        const text = await ocrFile(file);
-        const receipt = parseReceipt(text, file.name, crypto.randomUUID());
-        update((s) => ({ ...s, processed: s.processed + 1, receipts: [...s.receipts, receipt] }));
-      } catch {
-        update((s) => ({ ...s, failed: s.failed + 1 }));
-        setError(`Could not read “${file.name}”. Try a clearer, well-lit photo.`);
-      } finally { setWorking((n) => n - 1); }
     }
     if (skipped) setError(`${skipped} unsupported file(s) skipped. Use images or PDF.`);
     getStatus().then(setStatus).catch(() => undefined);
@@ -146,14 +147,14 @@ export default function App() {
           </div>
           <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => handleFiles(e.target.files)} />
           <input ref={fileRef} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
-          <p className="muted small">Processed on your device — images are never uploaded.</p>
+          <p className="muted small">Images are sent to Cloudflare for OCR and are not stored by Scandem.</p>
 
           <div className="tally" aria-live="polite">
             <div><b>{session.accepted}</b><span>Accepted</span></div>
             <div><b>{session.processed}</b><span>Processed</span></div>
             {session.failed > 0 && <div><b>{session.failed}</b><span>Failed</span></div>}
           </div>
-          {(working > 0 || pending > 0) && <p className="progress">Reading receipt{working > 1 ? 's' : ''}… first run downloads the OCR engine.</p>}
+          {(working > 0 || pending > 0) && <p className="progress">Reading receipt{working > 1 ? 's' : ''}…</p>}
           {error && <p className="error" role="alert">{error}</p>}
           {notice && <p className="info" role="status">{notice}</p>}
         </section>
