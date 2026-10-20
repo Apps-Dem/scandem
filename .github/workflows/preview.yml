@@ -45,8 +45,13 @@ jobs:
         id: preview
         run: |
           npx wrangler preview --name "pr-${{ github.event.pull_request.number }}" \
-            --config wrangler.preview.jsonc --json > preview.json
-          echo "url=$(jq -r '.preview.urls[0]' preview.json)" >> "$GITHUB_OUTPUT"
+            --config wrangler.preview.jsonc --json > preview.out
+          cat preview.out
+          # Wrangler may print a banner before the JSON payload.
+          sed -n '/^{/,$p' preview.out > preview.json
+          url=$(jq -r '.preview.urls[0] // empty' preview.json)
+          if [ -z "$url" ]; then echo "No preview URL in wrangler output" >&2; exit 1; fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
       - name: Comment preview URL
         run: |
           gh pr comment "${{ github.event.pull_request.number }}" --edit-last --create-if-none \
