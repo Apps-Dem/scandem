@@ -107,7 +107,7 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>Scandem <span>receipt scanner</span></h1>
+        <h1>Scandem <span>receipt scanner</span> <small className="ver">v{__APP_VERSION__}</small></h1>
       </header>
 
       {config?.paymentsRequired && (
