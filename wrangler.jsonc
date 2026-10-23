@@ -21,5 +21,19 @@
     "XCD_PER_USD": "2.7",
     "MOCK_PAYMENTS": "false"
   },
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "env": {
+    "preview": {
+      "name": "scandem-preview",
+      "d1_databases": [
+        { "binding": "DB", "database_name": "scandem-preview", "database_id": "preview-db-id", "migrations_dir": "server/migrations" }
+      ],
+      "vars": {
+        "PAYMENTS_REQUIRED": "false",
+        "PRICE_USD": "5",
+        "XCD_PER_USD": "2.7",
+        "MOCK_PAYMENTS": "true"
+      }
+    }
+  }
 }
