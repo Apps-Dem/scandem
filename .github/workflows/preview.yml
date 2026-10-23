@@ -52,10 +52,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Create preview D1 database if needed
-        run: |
-          # Try to create preview database, ignore if exists
-          npx wrangler d1 create scandem-preview --env preview 2>/dev/null || true
       - name: Apply D1 migrations (preview)
         run: npm run db:migrate:remote -- --env preview
         env:
