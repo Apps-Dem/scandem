@@ -147,6 +147,7 @@ export default function App() {
           <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => handleFiles(e.target.files)} />
           <input ref={fileRef} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
           <p className="muted small">Processed on your device — images are never uploaded.</p>
+          <p className="muted small"><b>Tip:</b> Use a phone camera stand or turntable for consistent shots.</p>
 
           <div className="tally" aria-live="polite">
             <div><b>{session.accepted}</b><span>Accepted</span></div>
