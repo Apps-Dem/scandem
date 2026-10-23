@@ -37,5 +37,12 @@ export default defineConfig(({ mode }) => ({
     }),
   ],
   server: { proxy: { '/api': 'http://localhost:8787' } },
-  test: { include: ['test/**/*.test.{js,ts}'] },
+  test: { 
+  include: ['test/**/*.test.{js,ts}'],
+  globals: {
+    'ts-jest': {
+      isolatedModules: true,
+    }
+  }
+},
 }));
