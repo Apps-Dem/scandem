@@ -61,8 +61,8 @@ jobs:
         id: deploy
         run: |
           npx wrangler deploy --env preview
-          # Preview URL uses custom domain
-          echo "preview_url=https://preview.alldem.app" >> $GITHUB_OUTPUT
+          # Preview URL uses custom domain *.scandem.alldem.app
+          echo "preview_url=https://preview.scandem.alldem.app" >> $GITHUB_OUTPUT
       - name: Comment PR with Preview URL
         uses: actions/github-script@v7
         with:
