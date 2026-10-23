@@ -25,9 +25,11 @@
   "env": {
     "preview": {
       "name": "scandem-preview",
-      "routes": [],
+      "routes": [
+        { "pattern": "preview.alldem.app", "custom_domain": true }
+      ],
       "d1_databases": [
-        { "binding": "DB", "database_name": "scandem-preview", "migrations_dir": "server/migrations" }
+        { "binding": "DB", "database_name": "scandem-staging", "migrations_dir": "server/migrations" }
       ],
       "vars": {
         "PAYMENTS_REQUIRED": "false",
