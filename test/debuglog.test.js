@@ -41,4 +41,12 @@ describe('debug log', () => {
     await request(off).post('/api/debug-log').send(body).expect(404);
     expect(sent).toHaveLength(0);
   });
+
+  it('accepts error-triggered logs without a download section', async () => {
+    sent.length = 0;
+    const b = { version: '0.1.0', outcome: 'scan_failed', attempts: [], error: { errorClass: 'Error', errorMessage: 'boom at /tmp/x.jpg' } };
+    await request(mk()).post('/api/debug-log').send(b).expect(202);
+    expect(sent[0].subject).toContain('scan_failed');
+    expect(sent[0].text).not.toMatch(/tmp|x\.jpg/);
+  });
 });

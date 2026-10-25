@@ -47,6 +47,12 @@ export default function App() {
     return () => { window.removeEventListener('pointerdown', on); window.removeEventListener('keydown', on); };
   }, [touch]);
 
+  const reportError = useCallback((outcome: Outcome, e?: unknown, msg?: string) => {
+    if (config?.debugLog !== true) return;
+    const d = e === undefined ? { errorClass: 'Error', errorMessage: msg } : describeError(e);
+    sendLog(buildLog({ paywallEnabled: config.paymentsRequired, outcome, ...d }));
+  }, [config]);
+
   const handleFiles = useCallback(async (files: FileList | null, source: Source) => {
     if (!files?.length) return;
     setError(''); setNotice('');
@@ -63,7 +69,7 @@ export default function App() {
           setNotice(`${list.length - list.indexOf(file) - skipped} file(s) were not accepted. Download your output or pay to continue.`);
           break;
         }
-      } catch (e) { setError((e as Error).message); break; }
+      } catch (e) { reportError('accept_failed', e); setError((e as Error).message); break; }
       update((s) => ({ ...s, accepted: s.accepted + 1 }));
       setWorking((n) => n + 1);
       const t0 = performance.now();
@@ -77,10 +83,11 @@ export default function App() {
             ocrConfidence: +ocr.confidence.toFixed(1), ...s, status: receipt.total !== null ? 'success' : 'failed',
             ...(receipt.total === null ? { errorClass: 'ParseIncomplete', errorMessage: 'No total found' } : {}),
           });
+          if (receipt.total === null) reportError('scan_failed', undefined, 'No total found');
         }
         update((s) => ({ ...s, processed: s.processed + 1, receipts: [...s.receipts, receipt] }));
       } catch (e) {
-        if (logOn) recordAttempt({ ...base, ocrMs: Math.round(performance.now() - t0), status: 'failed', ...describeError(e) });
+        if (logOn) { recordAttempt({ ...base, ocrMs: Math.round(performance.now() - t0), status: 'failed', ...describeError(e) }); reportError('scan_failed', e); }
         update((s) => ({ ...s, failed: s.failed + 1 }));
         setError(`Could not read “${file.name}”. Try a clearer, well-lit photo.`);
       } finally { setWorking((n) => n - 1); }
@@ -89,7 +96,7 @@ export default function App() {
     getStatus().then(setStatus).catch(() => undefined);
     if (fileRef.current) fileRef.current.value = '';
     if (camRef.current) camRef.current.value = '';
-  }, [update, config]);
+  }, [update, config, reportError]);
 
   const download = useCallback(async () => {
     if (!session.receipts.length) return;
@@ -131,7 +138,7 @@ export default function App() {
   const pay = async () => {
     setPaying(true);
     try { setStatus(await mockPay()); recordPayment(true); setPaywall(false); setNotice('Pass active for 24 hours. Keep scanning!'); }
-    catch (e) { recordPayment(false); setError((e as Error).message); }
+    catch (e) { recordPayment(false); reportError('payment_failed', e); setError((e as Error).message); }
     finally { setPaying(false); }
   };
 

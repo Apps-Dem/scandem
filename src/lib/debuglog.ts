@@ -6,7 +6,7 @@ import type { Receipt } from './types';
  */
 export type Source = 'photo' | 'upload';
 export type AttemptStatus = 'success' | 'failed' | 'paywalled';
-export type Outcome = 'ready' | 'prepare_failed' | 'download_failed';
+export type Outcome = 'ready' | 'prepare_failed' | 'download_failed' | 'scan_failed' | 'accept_failed' | 'payment_failed';
 
 export interface Attempt {
   n: number;
@@ -86,7 +86,7 @@ function device() {
   return { browser, os, deviceClass };
 }
 
-export interface LogContext { paywallEnabled: boolean | null; outcome: Outcome; download: DownloadInfo }
+export interface LogContext { paywallEnabled: boolean | null; outcome: Outcome; download?: DownloadInfo; errorClass?: string; errorMessage?: string }
 
 export function buildLog(ctx: LogContext) {
   const processed = attempts.filter((a) => a.status !== 'paywalled' && a.ocrConfidence !== undefined);
@@ -107,6 +107,7 @@ export function buildLog(ctx: LogContext) {
     },
     attempts,
     download: ctx.download,
+    ...(ctx.errorClass ? { error: { errorClass: ctx.errorClass, errorMessage: ctx.errorMessage } } : {}),
   };
 }
 

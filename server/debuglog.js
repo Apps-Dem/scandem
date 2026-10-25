@@ -2,7 +2,7 @@
 export const SUPPORT_TO = 'support@boundless-tallawah.com';
 const SOURCES = ['photo', 'upload'];
 const STATUSES = ['success', 'failed', 'paywalled'];
-const OUTCOMES = ['ready', 'prepare_failed', 'download_failed'];
+const OUTCOMES = ['ready', 'prepare_failed', 'download_failed', 'scan_failed', 'accept_failed', 'payment_failed'];
 const FIELDS = ['merchant', 'date', 'items', 'subtotal', 'tax', 'total', 'paymentMethod'];
 const MAX_ATTEMPTS = 200;
 
@@ -54,6 +54,7 @@ export function sanitizeLog(b, { paywallEnabled }) {
       failed: attempts.filter((a) => a.status === 'failed').length,
     },
     attempts,
+    error: clean({ errorClass: str(b.error?.errorClass, 40)?.replace(/[^\w.$-]/g, ''), errorMessage: redact(b.error?.errorMessage) }),
     download: clean({
       stage: oneOf(d.stage, ['prepare', 'download']), format: oneOf(d.format, ['csv', 'xlsx', 'qif', 'iif']),
       receipts: num(d.receipts, 0, 1e4), lineItems: num(d.lineItems, 0, 1e6), ms: num(d.ms, 0, 36e5), bytes: num(d.bytes),
