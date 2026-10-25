@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { acceptInput, getConfig, getStatus, mockPay, type Config, type Status } from './lib/api';
 import { buildOutput } from './lib/export';
-import { isSupported, ocrFile } from './lib/ocr';
+import { isSupported, ocrFile, preloadOcr } from './lib/ocr';
 import { buildLog, describeError, fileKind, recordAttempt, recordPaywallHit, recordPayment, resetLog, scoreReceipt, sendLog, type Outcome, type Source } from './lib/debuglog';
 import { parseReceipt } from './lib/parse';
 import { useSession } from './lib/session';
@@ -38,6 +38,9 @@ export default function App() {
   useEffect(() => {
     getConfig().then(setConfig).catch(() => setError('Cannot reach the server.'));
     getStatus().then(setStatus).catch(() => undefined);
+    // Wait for idle so the preload doesn't compete with first paint.
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
+    idle(preloadOcr);
   }, []);
 
   useEffect(() => {
@@ -198,7 +201,7 @@ export default function App() {
             <div><b>{session.processed}</b><span>Processed</span></div>
             {session.failed > 0 && <div><b>{session.failed}</b><span>Failed</span></div>}
           </div>
-          {(working > 0 || pending > 0) && <p className="progress">Reading receipt{working > 1 ? 's' : ''}… first run downloads the OCR engine.</p>}
+          {(working > 0 || pending > 0) && <p className="progress">Reading receipt{working > 1 ? 's' : ''}… the first run may still be loading the OCR engine.</p>}
           {error && <p className="error" role="alert">{error}</p>}
           {notice && <p className="info" role="status">{notice}</p>}
         </section>

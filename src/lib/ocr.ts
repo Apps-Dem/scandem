@@ -9,6 +9,11 @@ async function getWorker(): Promise<Worker> {
   return workerPromise;
 }
 
+/** Starts loading the OCR engine in the background; a failed preload is retried on first scan. */
+export function preloadOcr(): void {
+  getWorker().catch(() => { workerPromise = null; });
+}
+
 function toCanvas(src: CanvasImageSource, w: number, h: number): HTMLCanvasElement {
   const scale = Math.min(1, MAX_DIM / Math.max(w, h));
   const c = document.createElement('canvas');
