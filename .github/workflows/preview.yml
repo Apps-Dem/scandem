@@ -36,6 +36,7 @@ jobs:
     needs: test
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    environment: preview
     env:
       VITE_ADSENSE_CLIENT: ${{ vars.VITE_ADSENSE_CLIENT }}
       VITE_ADSENSE_SLOT: ${{ vars.VITE_ADSENSE_SLOT }}
