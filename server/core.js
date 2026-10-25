@@ -1,5 +1,6 @@
 // Runtime-agnostic API (Web Request/Response). Used by the Cloudflare Worker (D1) and the local Node server (SQLite).
 const DAY_MS = 24 * 60 * 60 * 1000;
+import { sanitizeLog, formatEmail, SUPPORT_TO } from './debuglog.js';
 
 export function priceInfo(env = {}) {
   const usd = Number(env.PRICE_USD ?? 5);
@@ -32,6 +33,7 @@ export function createHandler({ db, env = {}, now = () => Date.now() }) {
     return row ? row.value === 'true' : (env.PAYMENTS_REQUIRED ?? 'true') !== 'false';
   };
   const mockEnabled = () => (env.MOCK_PAYMENTS ? env.MOCK_PAYMENTS === 'true' : env.NODE_ENV !== 'production');
+  const debugLogEnabled = () => (env.DEBUG_LOG_ENABLED ?? 'true') !== 'false'; // on unless explicitly disabled
 
   async function status(dev) {
     const active = dev.pass_expires > now();
@@ -73,7 +75,23 @@ export function createHandler({ db, env = {}, now = () => Date.now() }) {
     try {
       if (pathname === '/api/config' && method === 'GET') {
         const p = priceInfo(env);
-        return json({ paymentsRequired: await paymentsRequired(), priceUsd: p.usd, priceXcd: p.xcd, mockPayments: mockEnabled() });
+        return json({ paymentsRequired: await paymentsRequired(), priceUsd: p.usd, priceXcd: p.xcd, mockPayments: mockEnabled(), debugLog: debugLogEnabled() });
+      }
+
+      if (pathname === '/api/debug-log' && method === 'POST') {
+        if (!debugLogEnabled()) return json({ error: 'disabled' }, 404);
+        const raw = await request.text();
+        if (raw.length > 200_000) return json({ error: 'too_large' }, 413);
+        let body = null;
+        try { body = JSON.parse(raw); } catch { /* handled below */ }
+        const log = sanitizeLog(body, { paywallEnabled: await paymentsRequired() });
+        if (!log) return json({ error: 'bad_request' }, 400);
+        const mail = formatEmail(log, env.DEBUG_LOG_FROM || SUPPORT_TO);
+        try {
+          if (env.EMAIL?.send) await env.EMAIL.send(mail);
+          else console.log('debug-log (no EMAIL binding)', mail.subject);
+        } catch (e) { console.error('debug-log email failed', e); return json({ error: 'send_failed' }, 502); }
+        return json({ ok: true }, 202);
       }
 
       if (pathname.startsWith('/api/admin/')) {

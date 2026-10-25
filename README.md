@@ -18,6 +18,9 @@ Requires Node >= 22 (the local server uses `node:sqlite`). Production runs on Cl
     curl -X PUT localhost:8787/api/admin/settings -H "Authorization: Bearer $ADMIN_TOKEN" \
       -H 'content-type: application/json' -d '{"paymentsRequired": false}'
 
+## Anonymized debug log
+After each download attempt the client posts an anonymized log to `POST /api/debug-log`, and the Worker emails it to support@boundless-tallawah.com via Cloudflare Email Service (`send_email` binding `EMAIL`). It contains build version, paywall status (enabled/disabled), counts (accepted/processed/successful/failed), per-attempt source (photo/upload + file type), size, OCR time, OCR and parser confidence, error class + redacted message, and download stage (`prepare` / `download`) and outcome. It never contains uploaded images, OCR text, receipt data or file names. Disable with `DEBUG_LOG_ENABLED="false"` (default `"true"`). The sender domain must be onboarded: `npx wrangler email sending enable boundless-tallawah.com`.
+
 ## Deploy (Cloudflare, scandem.alldem.app)
     npx wrangler login
     npx wrangler d1 create scandem          # once; paste database_id into wrangler.jsonc if not auto-provisioned
