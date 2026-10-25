@@ -1,0 +1,17 @@
+name: Generate Admin Token
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    outputs:
+      token: ${{ steps.set.outputs.token }}
+    steps:
+      - name: Generate random admin token
+        id: set
+        run: |
+          TOKEN=$(openssl rand -hex 32)
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+          echo "Generated admin token (keep this safe): $TOKEN"
