@@ -1,5 +1,4 @@
 // Whitelist-based sanitizer: anything not explicitly listed here is dropped.
-export const SUPPORT_TO = 'support@boundless-tallawah.com';
 const SOURCES = ['photo', 'upload'];
 const STATUSES = ['success', 'failed', 'paywalled'];
 const OUTCOMES = ['ready', 'prepare_failed', 'download_failed', 'scan_failed', 'accept_failed', 'payment_failed'];
@@ -62,18 +61,4 @@ export function sanitizeLog(b, { paywallEnabled }) {
     }),
   };
   return log;
-}
-
-export function formatEmail(log, from) {
-  const c = log.counts;
-  return {
-    to: SUPPORT_TO,
-    from,
-    subject: `[Scandem ${log.version}] debug log: ${log.outcome} (${c.successful}/${c.accepted} ok, paywall ${log.paywall})`,
-    text:
-      `Anonymized diagnostics. No uploaded data, file names, or receipt contents are included.\n\n` +
-      `Build: ${log.version}\nPaywall: ${log.paywall}\nOutcome: ${log.outcome}\n` +
-      `Accepted: ${c.accepted}  Processed: ${c.processed}  Successful: ${c.successful}  Failed: ${c.failed}\n\n` +
-      JSON.stringify(log, null, 2),
-  };
 }

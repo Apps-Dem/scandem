@@ -8,13 +8,16 @@ import { createHandler } from './core.js';
 export { priceInfo } from './core.js';
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.wasm': 'application/wasm' };
-const schema = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations', '0001_init.sql'), 'utf8');
+const migrationsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
+const schema = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort()
+  .map((f) => fs.readFileSync(path.join(migrationsDir, f), 'utf8')).join('\n');
 
 function sqliteAdapter(dbPath) {
   const sql = new DatabaseSync(dbPath);
   sql.exec(schema);
   return {
     first: async (q, ...p) => sql.prepare(q).get(...p) ?? null,
+    all: async (q, ...p) => sql.prepare(q).all(...p),
     run: async (q, ...p) => {
       const r = sql.prepare(q).run(...p);
       return { changes: Number(r.changes), lastId: Number(r.lastInsertRowid) };
