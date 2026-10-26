@@ -18,6 +18,11 @@ Requires Node >= 22 (the local server uses `node:sqlite`). Production runs on Cl
     curl -X PUT localhost:8787/api/admin/settings -H "Authorization: Bearer $ADMIN_TOKEN" \
       -H 'content-type: application/json' -d '{"paymentsRequired": false}'
 
+## Anonymized debug log
+After each download attempt, and immediately on any error (scan, usage check, payment), the client posts an anonymized log to `POST /api/debug-log`, and the Worker stores it in the D1 `debug_logs` table (migration `0002_debug_logs.sql`; run `npm run db:migrate:remote`). It contains build version, paywall status (enabled/disabled), counts (accepted/processed/successful/failed), per-attempt source (photo/upload + file type), size, OCR time, OCR and parser confidence, error class + redacted message, and download stage (`prepare` / `download`) and outcome. It never contains uploaded images, OCR text, receipt data or file names. Disable with `DEBUG_LOG_ENABLED="false"` (default `"true"`).
+
+View logs at `/admin` (sign in with `ADMIN_TOKEN`), or via `GET /api/admin/logs` (filters: `outcome`, `version`, `paywall`, `limit`, `before`), `GET /api/admin/logs/:id` and `GET /api/admin/logs/summary`, all with `Authorization: Bearer <ADMIN_TOKEN>`.
+
 ## Deploy (Cloudflare, scandem.alldem.app)
     npx wrangler login
     npx wrangler d1 create scandem          # once; paste database_id into wrangler.jsonc if not auto-provisioned

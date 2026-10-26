@@ -1,6 +1,6 @@
 import { getFingerprint } from './fingerprint';
 
-export interface Config { paymentsRequired: boolean; priceUsd: number; priceXcd: number; mockPayments: boolean }
+export interface Config { paymentsRequired: boolean; priceUsd: number; priceXcd: number; mockPayments: boolean; debugLog: boolean }
 export interface Status { paymentsRequired: boolean; freeUsed: boolean; passActive: boolean; passExpires: number | null }
 
 async function call<T>(path: string, method = 'GET'): Promise<{ status: number; body: T }> {

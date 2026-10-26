@@ -16,6 +16,7 @@
     { "binding": "DB", "database_name": "scandem", "database_id": "3e4b7115-df1e-46bb-9f2d-098256e65dd6", "migrations_dir": "server/migrations" }
   ],
   "vars": {
+    "DEBUG_LOG_ENABLED": "true",
     "PAYMENTS_REQUIRED": "false",
     "PRICE_USD": "5",
     "XCD_PER_USD": "2.7",
@@ -32,6 +33,7 @@
         { "binding": "DB", "database_name": "scandem-staging", "migrations_dir": "server/migrations" }
       ],
       "vars": {
+        "DEBUG_LOG_ENABLED": "true",
         "PAYMENTS_REQUIRED": "false",
         "PRICE_USD": "5",
         "XCD_PER_USD": "2.7",

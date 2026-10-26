@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { acceptInput, getConfig, getStatus, mockPay, type Config, type Status } from './lib/api';
 import { buildOutput } from './lib/export';
-import { isSupported, ocrFile } from './lib/ocr';
+import { isSupported, ocrFile, preloadOcr } from './lib/ocr';
+import { buildLog, describeError, fileKind, recordAttempt, recordPaywallHit, recordPayment, resetLog, scoreReceipt, sendLog, type Outcome, type Source } from './lib/debuglog';
 import { parseReceipt } from './lib/parse';
 import { useSession } from './lib/session';
 import type { OutputFormat } from './lib/types';
@@ -37,6 +38,9 @@ export default function App() {
   useEffect(() => {
     getConfig().then(setConfig).catch(() => setError('Cannot reach the server.'));
     getStatus().then(setStatus).catch(() => undefined);
+    // Wait for idle so the preload doesn't compete with first paint.
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
+    idle(preloadOcr);
   }, []);
 
   useEffect(() => {
@@ -46,27 +50,47 @@ export default function App() {
     return () => { window.removeEventListener('pointerdown', on); window.removeEventListener('keydown', on); };
   }, [touch]);
 
-  const handleFiles = useCallback(async (files: FileList | null) => {
+  const reportError = useCallback((outcome: Outcome, e?: unknown, msg?: string) => {
+    if (config?.debugLog !== true) return;
+    const d = e === undefined ? { errorClass: 'Error', errorMessage: msg } : describeError(e);
+    sendLog(buildLog({ paywallEnabled: config.paymentsRequired, outcome, ...d }));
+  }, [config]);
+
+  const handleFiles = useCallback(async (files: FileList | null, source: Source) => {
     if (!files?.length) return;
     setError(''); setNotice('');
     const list = [...files];
     let skipped = 0;
+    const logOn = config?.debugLog === true;
     for (const file of list) {
       if (!isSupported(file)) { skipped++; continue; }
+      const base = { source, fileType: fileKind(file), bytes: file.size };
       try {
         if ((await acceptInput()) === 'payment_required') {
+          if (logOn) { recordPaywallHit(); recordAttempt({ ...base, status: 'paywalled' }); }
           setPaywall(true);
           setNotice(`${list.length - list.indexOf(file) - skipped} file(s) were not accepted. Download your output or pay to continue.`);
           break;
         }
-      } catch (e) { setError((e as Error).message); break; }
+      } catch (e) { reportError('accept_failed', e); setError((e as Error).message); break; }
       update((s) => ({ ...s, accepted: s.accepted + 1 }));
       setWorking((n) => n + 1);
+      const t0 = performance.now();
       try {
-        const text = await ocrFile(file);
-        const receipt = parseReceipt(text, file.name, crypto.randomUUID());
+        const ocr = await ocrFile(file);
+        const receipt = parseReceipt(ocr.text, file.name, crypto.randomUUID());
+        if (logOn) {
+          const s = scoreReceipt(receipt);
+          recordAttempt({
+            ...base, width: ocr.width, height: ocr.height, pages: ocr.pages, ocrMs: Math.round(performance.now() - t0),
+            ocrConfidence: +ocr.confidence.toFixed(1), ...s, status: receipt.total !== null ? 'success' : 'failed',
+            ...(receipt.total === null ? { errorClass: 'ParseIncomplete', errorMessage: 'No total found' } : {}),
+          });
+          if (receipt.total === null) reportError('scan_failed', undefined, 'No total found');
+        }
         update((s) => ({ ...s, processed: s.processed + 1, receipts: [...s.receipts, receipt] }));
-      } catch {
+      } catch (e) {
+        if (logOn) { recordAttempt({ ...base, ocrMs: Math.round(performance.now() - t0), status: 'failed', ...describeError(e) }); reportError('scan_failed', e); }
         update((s) => ({ ...s, failed: s.failed + 1 }));
         setError(`Could not read “${file.name}”. Try a clearer, well-lit photo.`);
       } finally { setWorking((n) => n - 1); }
@@ -75,28 +99,49 @@ export default function App() {
     getStatus().then(setStatus).catch(() => undefined);
     if (fileRef.current) fileRef.current.value = '';
     if (camRef.current) camRef.current.value = '';
-  }, [update]);
+  }, [update, config, reportError]);
 
   const download = useCallback(async () => {
     if (!session.receipts.length) return;
     setError('');
+    const logOn = config?.debugLog === true;
+    const info = {
+      format, receipts: session.receipts.length, lineItems: session.receipts.reduce((n, r) => n + r.items.length, 0),
+    };
+    const report = (outcome: Outcome, stage: 'prepare' | 'download', t0: number, extra: object) => {
+      if (!logOn) return;
+      sendLog(buildLog({ paywallEnabled: config?.paymentsRequired ?? null, outcome, download: { stage, ...info, ms: Math.round(performance.now() - t0), ...extra } }));
+    };
+    const t0 = performance.now();
+    let out;
+    try { out = await buildOutput(session.receipts, format); }
+    catch (e) {
+      report('prepare_failed', 'prepare', t0, describeError(e));
+      setError('Could not build the output file. Your data is still here; try again.');
+      return;
+    }
     try {
-      const out = await buildOutput(session.receipts, format);
       const url = URL.createObjectURL(out.blob);
       const a = document.createElement('a');
       a.href = url; a.download = out.filename;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      clear();
-      setPaywall(false);
-      setNotice('Download started. Your inputs and results have been cleared.');
-    } catch { setError('Could not build the output file. Your data is still here; try again.'); }
-  }, [session.receipts, format, clear]);
+    } catch (e) {
+      report('download_failed', 'download', t0, { bytes: out.blob.size, ...describeError(e) });
+      setError('The download could not be started. Your data is still here; try again.');
+      return;
+    }
+    report('ready', 'download', t0, { bytes: out.blob.size });
+    resetLog();
+    clear();
+    setPaywall(false);
+    setNotice('Download started. Your inputs and results have been cleared.');
+  }, [session.receipts, format, clear, config]);
 
   const pay = async () => {
     setPaying(true);
-    try { setStatus(await mockPay()); setPaywall(false); setNotice('Pass active for 24 hours. Keep scanning!'); }
-    catch (e) { setError((e as Error).message); }
+    try { setStatus(await mockPay()); recordPayment(true); setPaywall(false); setNotice('Pass active for 24 hours. Keep scanning!'); }
+    catch (e) { recordPayment(false); reportError('payment_failed', e); setError((e as Error).message); }
     finally { setPaying(false); }
   };
 
@@ -145,9 +190,10 @@ export default function App() {
             <button className="btn primary big" onClick={() => camRef.current?.click()}>📷 Take photo</button>
             <button className="btn big" onClick={() => fileRef.current?.click()}>🖼️ Upload photos / PDF</button>
           </div>
-          <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => handleFiles(e.target.files)} />
-          <input ref={fileRef} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
+          <input ref={camRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => handleFiles(e.target.files, 'photo')} />
+          <input ref={fileRef} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => handleFiles(e.target.files, 'upload')} />
           <p className="muted small">Processed on your device — images are never uploaded.</p>
+          {config?.debugLog && <p className="muted small">Anonymized diagnostics (counts, timings, error types; never your images or receipt data) are sent to support when you download.</p>}
           <p className="muted small"><b>Tip:</b> Use a phone camera stand or turntable for consistent shots.</p>
 
           <div className="tally" aria-live="polite">
@@ -155,7 +201,7 @@ export default function App() {
             <div><b>{session.processed}</b><span>Processed</span></div>
             {session.failed > 0 && <div><b>{session.failed}</b><span>Failed</span></div>}
           </div>
-          {(working > 0 || pending > 0) && <p className="progress">Reading receipt{working > 1 ? 's' : ''}… first run downloads the OCR engine.</p>}
+          {(working > 0 || pending > 0) && <p className="progress">Reading receipt{working > 1 ? 's' : ''}… the first run may still be loading the OCR engine.</p>}
           {error && <p className="error" role="alert">{error}</p>}
           {notice && <p className="info" role="status">{notice}</p>}
         </section>

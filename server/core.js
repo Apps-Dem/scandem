@@ -1,5 +1,6 @@
 // Runtime-agnostic API (Web Request/Response). Used by the Cloudflare Worker (D1) and the local Node server (SQLite).
 const DAY_MS = 24 * 60 * 60 * 1000;
+import { sanitizeLog } from './debuglog.js';
 
 export function priceInfo(env = {}) {
   const usd = Number(env.PRICE_USD ?? 5);
@@ -32,6 +33,7 @@ export function createHandler({ db, env = {}, now = () => Date.now() }) {
     return row ? row.value === 'true' : (env.PAYMENTS_REQUIRED ?? 'true') !== 'false';
   };
   const mockEnabled = () => (env.MOCK_PAYMENTS ? env.MOCK_PAYMENTS === 'true' : env.NODE_ENV !== 'production');
+  const debugLogEnabled = () => (env.DEBUG_LOG_ENABLED ?? 'true') !== 'false'; // on unless explicitly disabled
 
   async function status(dev) {
     const active = dev.pass_expires > now();
@@ -73,7 +75,24 @@ export function createHandler({ db, env = {}, now = () => Date.now() }) {
     try {
       if (pathname === '/api/config' && method === 'GET') {
         const p = priceInfo(env);
-        return json({ paymentsRequired: await paymentsRequired(), priceUsd: p.usd, priceXcd: p.xcd, mockPayments: mockEnabled() });
+        return json({ paymentsRequired: await paymentsRequired(), priceUsd: p.usd, priceXcd: p.xcd, mockPayments: mockEnabled(), debugLog: debugLogEnabled() });
+      }
+
+      if (pathname === '/api/debug-log' && method === 'POST') {
+        if (!debugLogEnabled()) return json({ error: 'disabled' }, 404);
+        const raw = await request.text();
+        if (raw.length > 200_000) return json({ error: 'too_large' }, 413);
+        let body = null;
+        try { body = JSON.parse(raw); } catch { /* handled below */ }
+        const log = sanitizeLog(body, { paywallEnabled: await paymentsRequired() });
+        if (!log) return json({ error: 'bad_request' }, 400);
+        await db.run(
+          `INSERT INTO debug_logs (created_at, version, session_id, outcome, paywall, accepted, processed, successful, failed, browser, os, device_class, payload)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          now(), log.version, log.sessionId ?? null, log.outcome, log.paywall,
+          log.counts.accepted, log.counts.processed, log.counts.successful, log.counts.failed,
+          log.device.browser ?? null, log.device.os ?? null, log.device.deviceClass ?? null, JSON.stringify(log));
+        return json({ ok: true }, 202);
       }
 
       if (pathname.startsWith('/api/admin/')) {
@@ -85,6 +104,35 @@ export function createHandler({ db, env = {}, now = () => Date.now() }) {
           if (typeof body?.paymentsRequired !== 'boolean') return json({ error: 'paymentsRequired must be boolean' }, 400);
           await db.run('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', 'payments_required', String(body.paymentsRequired));
           return json({ paymentsRequired: await paymentsRequired() });
+        }
+        if (method === 'GET' && pathname === '/api/admin/logs/summary') {
+          const totals = await db.first(
+            `SELECT COUNT(*) AS logs, COALESCE(SUM(accepted),0) AS accepted, COALESCE(SUM(processed),0) AS processed,
+                    COALESCE(SUM(successful),0) AS successful, COALESCE(SUM(failed),0) AS failed FROM debug_logs`);
+          const byOutcome = await db.all('SELECT outcome, COUNT(*) AS n FROM debug_logs GROUP BY outcome ORDER BY n DESC');
+          const byVersion = await db.all('SELECT version, COUNT(*) AS n FROM debug_logs GROUP BY version ORDER BY n DESC LIMIT 20');
+          const byPaywall = await db.all('SELECT paywall, COUNT(*) AS n FROM debug_logs GROUP BY paywall');
+          return json({ totals, byOutcome, byVersion, byPaywall });
+        }
+        const one = pathname.match(/^\/api\/admin\/logs\/(\d+)$/);
+        if (method === 'GET' && one) {
+          const row = await db.first('SELECT * FROM debug_logs WHERE id = ?', Number(one[1]));
+          if (!row) return json({ error: 'not_found' }, 404);
+          const { payload, ...meta } = row;
+          return json({ ...meta, payload: JSON.parse(payload) });
+        }
+        if (method === 'GET' && pathname === '/api/admin/logs') {
+          const q = url.searchParams;
+          const where = [], args = [];
+          for (const [param, col] of [['outcome', 'outcome'], ['version', 'version'], ['paywall', 'paywall']]) {
+            if (q.get(param)) { where.push(`${col} = ?`); args.push(q.get(param)); }
+          }
+          if (q.get('before')) { where.push('id < ?'); args.push(Number(q.get('before')) || 0); }
+          const limit = Math.min(200, Math.max(1, Number(q.get('limit')) || 50));
+          const rows = await db.all(
+            `SELECT id, created_at, version, session_id, outcome, paywall, accepted, processed, successful, failed, browser, os, device_class
+             FROM debug_logs ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY id DESC LIMIT ?`, ...args, limit);
+          return json({ logs: rows, next: rows.length === limit ? rows[rows.length - 1].id : null });
         }
         return json({ error: 'not_found' }, 404);
       }
@@ -125,6 +173,7 @@ export function createHandler({ db, env = {}, now = () => Date.now() }) {
 export function d1Adapter(d1) {
   return {
     first: (sql, ...p) => d1.prepare(sql).bind(...p).first(),
+    all: async (sql, ...p) => (await d1.prepare(sql).bind(...p).all()).results,
     run: async (sql, ...p) => {
       const r = await d1.prepare(sql).bind(...p).run();
       return { changes: r.meta.changes, lastId: r.meta.last_row_id };
