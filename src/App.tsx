@@ -153,6 +153,7 @@ export default function App() {
     <div className="app">
       <header>
         <h1>Scandem <span>receipt scanner</span></h1>
+        <small className="byline">By Boundless Tallawah Software</small>
         <small className="version">v{__APP_VERSION__}</small>
       </header>
 
