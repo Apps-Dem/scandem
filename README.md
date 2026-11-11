@@ -5,7 +5,7 @@ PWA that scans POS receipts (photos/PDF) with in-browser OCR (Tesseract.js) and 
 - First receipt per device is free; after that a $5 USD (EC$14, rounded up from the 2.70 peg) 24h pass is required. Devices are identified by a client fingerprint hash + cookie (either match counts).
 - Payments are a stub (`POST /api/pay/mock-complete`); replace with a real provider.
 - Tally and results live in `localStorage`; cleared on download or after 30 min idle.
-- Ads: `AdSlot` placeholders (top / inline / bottom); set `VITE_ADSENSE_*` (see `.env.example`) to go live.
+- Ads: `AdSlot` placeholders (top / inline / bottom). Disabled by default (no slots or AdSense script); set `VITE_ADS_ENABLED=true` to include them, and `VITE_ADSENSE_*` (see `.env.example`) to go live.
 
 ## Run
 Requires Node >= 22 (the local server uses `node:sqlite`). Production runs on Cloudflare Workers + D1 (`worker/index.js`, `wrangler.jsonc`); both share `server/core.js`.

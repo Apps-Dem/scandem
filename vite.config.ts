@@ -19,11 +19,14 @@ function adsenseHead(client?: string): Plugin {
   };
 }
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
+  const adsEnabled = env.VITE_ADS_ENABLED === 'true';
+  return {
   define: { __APP_VERSION__: JSON.stringify(appVersion) },
   plugins: [
     react(),
-    adsenseHead(loadEnv(mode, process.cwd(), 'VITE_').VITE_ADSENSE_CLIENT),
+    adsenseHead(adsEnabled ? env.VITE_ADSENSE_CLIENT : undefined),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
@@ -53,4 +56,5 @@ export default defineConfig(({ mode }) => ({
     }
   }
 },
-}));
+  };
+});

@@ -17,6 +17,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
+      VITE_ADS_ENABLED: ${{ vars.VITE_ADS_ENABLED }}
       VITE_ADSENSE_CLIENT: ${{ vars.VITE_ADSENSE_CLIENT }}
       VITE_ADSENSE_SLOT: ${{ vars.VITE_ADSENSE_SLOT }}
       VITE_ADSENSE_SLOT_TOP: ${{ vars.VITE_ADSENSE_SLOT_TOP }}
@@ -38,6 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
+      VITE_ADS_ENABLED: ${{ vars.VITE_ADS_ENABLED }}
       VITE_ADSENSE_CLIENT: ${{ vars.VITE_ADSENSE_CLIENT }}
       VITE_ADSENSE_SLOT: ${{ vars.VITE_ADSENSE_SLOT }}
       VITE_ADSENSE_SLOT_TOP: ${{ vars.VITE_ADSENSE_SLOT_TOP }}

@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 
+// Ads are disabled unless VITE_ADS_ENABLED is exactly "true".
+const ADS_ENABLED = import.meta.env.VITE_ADS_ENABLED === 'true';
 const CLIENT = import.meta.env.VITE_ADSENSE_CLIENT as string | undefined;
 const DEFAULT_SLOT = import.meta.env.VITE_ADSENSE_SLOT as string | undefined;
 // Per-placement overrides are optional; otherwise the shared "Slot 1" unit is used.
@@ -24,7 +26,7 @@ export type AdPlacement = 'top' | 'inline' | 'bottom';
 /** Reserved, clearly labelled ad area. Renders AdSense when configured, else a tasteful placeholder. */
 export function AdSlot({ placement }: { placement: AdPlacement }) {
   const slot = SLOTS[placement];
-  const live = !!(CLIENT && slot);
+  const live = !!(ADS_ENABLED && CLIENT && slot);
   const pushed = useRef(false);
   useEffect(() => {
     if (!live || pushed.current) return;
@@ -32,6 +34,8 @@ export function AdSlot({ placement }: { placement: AdPlacement }) {
     loadScript();
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch { /* blocked */ }
   }, [live]);
+
+  if (!ADS_ENABLED) return null;
 
   return (
     <aside className={`ad ad-${placement}`} aria-label="Advertisement">
